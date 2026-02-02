@@ -1,0 +1,46 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Private Jack",
+        "description": "Select a Jackery device to add. Devices are discovered via Bluetooth.",
+        "data": {
+          "device": "Device"
+        }
+      }
+    },
+    "error": {
+      "scan_failed": "Bluetooth scan failed. Make sure Bluetooth is enabled.",
+      "no_devices_found": "No Jackery devices found. Make sure the device is powered on and nearby."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery_level": { "name": "Battery Level" },
+      "battery_temperature": { "name": "Battery Temperature" },
+      "total_input_power": { "name": "Total Input Power" },
+      "total_output_power": { "name": "Total Output Power" },
+      "ac_input_power": { "name": "AC Input Power" },
+      "ac_output_power": { "name": "AC Output Power" },
+      "dc_solar_input_power": { "name": "DC/Solar Input Power" },
+      "ac_output_voltage": { "name": "AC Output Voltage" },
+      "ac_output_frequency": { "name": "AC Output Frequency" },
+      "energy_saving": { "name": "Energy Saving Timer" },
+      "error_code": { "name": "Error Code" }
+    },
+    "switch": {
+      "ac_output": { "name": "AC Output" },
+      "dc_output": { "name": "DC Output" },
+      "usb_output": { "name": "USB Output" },
+      "car_output": { "name": "Car Output" },
+      "ups_mode": { "name": "UPS Mode" },
+      "super_charge": { "name": "Super Charge" }
+    },
+    "select": {
+      "light_mode": { "name": "Light Mode" },
+      "charge_mode": { "name": "Charge Mode" },
+      "battery_save": { "name": "Battery Save" },
+      "energy_saving": { "name": "Energy Saving" }
+    }
+  }
+}

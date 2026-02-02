@@ -1,0 +1,25 @@
+{
+  "domain": "private_jack",
+  "name": "Private Jack",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "",
+  "iot_class": "local_polling",
+  "requirements": ["bleak>=0.21.0", "pycryptodome>=3.19.0"],
+  "version": "1.0.0",
+  "bluetooth": [
+    {
+      "local_name": "HT*"
+    },
+    {
+      "local_name": "JACKERY*"
+    },
+    {
+      "local_name": "JK*"
+    },
+    {
+      "local_name": "EXPLORER*"
+    }
+  ]
+}
