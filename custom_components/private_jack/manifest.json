@@ -4,7 +4,7 @@
   "codeowners": [],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "",
+  "documentation": "https://github.com/kzapolski/private_jack",
   "iot_class": "local_polling",
   "requirements": ["bleak>=0.21.0", "pycryptodome>=3.19.0"],
   "version": "1.0.2",
