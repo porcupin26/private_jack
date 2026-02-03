@@ -7,16 +7,13 @@
   "documentation": "",
   "iot_class": "local_polling",
   "requirements": ["bleak>=0.21.0", "pycryptodome>=3.19.0"],
-  "version": "1.0.0",
+  "version": "1.0.2",
   "bluetooth": [
     {
-      "local_name": "HT*"
+      "local_name": "HT"
     },
     {
       "local_name": "JACKERY*"
-    },
-    {
-      "local_name": "JK*"
     },
     {
       "local_name": "EXPLORER*"
