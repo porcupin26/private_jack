@@ -190,6 +190,41 @@ class JackeryBleClient:
         except Exception:
             return None, None, None
 
+    async def connect_with_client(self, client: BleakClient, name: str = "device") -> bool:
+        """Set up an already-connected BleakClient (from establish_connection)."""
+        try:
+            if self.client:
+                try:
+                    await self.client.disconnect()
+                except Exception:
+                    pass
+
+            self.client = client
+            self._setup_encryption()
+            await self.client.start_notify(BleUUIDs.CHAR_DATA_NOTIFY, self._handle_notification)
+            _LOGGER.debug("Connected to %s", name)
+            return True
+        except Exception as e:
+            error_msg = str(e) if str(e) else type(e).__name__
+            _LOGGER.error("Connection setup failed: %s", error_msg)
+            self.client = None
+            return False
+
+    def _setup_encryption(self) -> None:
+        """Configure encryption based on current settings."""
+        if not self.encryption_key:
+            return
+        if self.device_type == "box":
+            self.encryption = BoxEncryption(self.encryption_key, key_is_base64=self.key_is_base64)
+        elif self.model_code in (20, 21):
+            self.encryption = PortableAESEncryption(self.encryption_key, key_is_base64=self.key_is_base64)
+        elif self.model_code is not None:
+            self.encryption = PortableRC4Encryption(self.encryption_key, key_is_base64=self.key_is_base64)
+        else:
+            self.encryption = AutoDetectEncryption(
+                self.encryption_key, key_is_base64=self.key_is_base64, device_type="portable"
+            )
+
     async def connect(self, device: JackeryDevice, retries: int = 2) -> bool:
         """Connect to a Jackery device with retry logic."""
         for attempt in range(1, retries + 1):
