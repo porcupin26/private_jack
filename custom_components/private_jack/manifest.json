@@ -14,10 +14,10 @@
   ],
   "codeowners": [],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["bluetooth"],
   "documentation": "https://github.com/porcupin26/private_jack",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/porcupin26/private_jack/issues",
-  "requirements": ["bleak>=0.21.0", "pycryptodome>=3.19.0"],
-  "version": "1.0.3"
+  "requirements": ["bleak>=0.21.0", "bleak-retry-connector>=3.1.0", "pycryptodome>=3.19.0"],
+  "version": "1.0.4"
 }

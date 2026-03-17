@@ -7,6 +7,10 @@ import time
 from datetime import timedelta
 from typing import Any, Optional
 
+from bleak import BleakClient
+from bleak_retry_connector import establish_connection
+
+from homeassistant.components.bluetooth import async_ble_device_from_address
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -70,6 +74,13 @@ class JackeryBleCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         _LOGGER.debug("Connecting to %s (%s)", self._device_name, self._address)
 
+        ble_device = async_ble_device_from_address(self.hass, self._address, connectable=True)
+        if not ble_device:
+            self._connected = False
+            raise UpdateFailed(
+                f"Device {self._device_name} ({self._address}) not found by HA Bluetooth"
+            )
+
         self._client = JackeryBleClient(
             encryption_key=self._encryption_key,
             device_type=self._device_type,
@@ -77,7 +88,11 @@ class JackeryBleCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             model_code=self._model_code,
         )
 
-        success = await self._client.connect_by_address(self._address)
+        client = await establish_connection(
+            BleakClient, ble_device, self._device_name
+        )
+
+        success = await self._client.connect_with_client(client, self._device_name)
         if not success:
             self._connected = False
             raise UpdateFailed(f"Failed to connect to {self._device_name}")
