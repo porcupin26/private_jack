@@ -27,19 +27,13 @@ from .coordinator import JackeryBleCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-SENSOR_DESCRIPTIONS: list[SensorEntityDescription] = [
+# Sensors shared by both portable and box devices
+COMMON_SENSOR_DESCRIPTIONS: list[SensorEntityDescription] = [
     SensorEntityDescription(
         key="rb",
         translation_key="battery_level",
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="bt",
-        translation_key="battery_temperature",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
@@ -54,6 +48,17 @@ SENSOR_DESCRIPTIONS: list[SensorEntityDescription] = [
         translation_key="total_output_power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+]
+
+# Sensors only for portable devices
+PORTABLE_SENSOR_DESCRIPTIONS: list[SensorEntityDescription] = [
+    SensorEntityDescription(
+        key="bt",
+        translation_key="battery_temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
@@ -105,11 +110,53 @@ SENSOR_DESCRIPTIONS: list[SensorEntityDescription] = [
     ),
 ]
 
+# Sensors only for box (stationary) devices
+BOX_SENSOR_DESCRIPTIONS: list[SensorEntityDescription] = [
+    SensorEntityDescription(
+        key="ds",
+        translation_key="solar_input_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="dh",
+        translation_key="high_pv_input_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="de",
+        translation_key="grid_input_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="dg",
+        translation_key="generator_input_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+]
+
 # Keys that need value transformation
 VALUE_TRANSFORMS = {
     "bt": lambda v: round(v / 10.0, 1) if v else 0.0,
     "acov": lambda v: round(v / 10.0, 1) if v else 0.0,
 }
+
+
+_PORTABLE_KEYS = {d.key for d in PORTABLE_SENSOR_DESCRIPTIONS}
+_BOX_KEYS = {d.key for d in BOX_SENSOR_DESCRIPTIONS}
+
+ALL_SENSOR_DESCRIPTIONS = (
+    COMMON_SENSOR_DESCRIPTIONS
+    + PORTABLE_SENSOR_DESCRIPTIONS
+    + BOX_SENSOR_DESCRIPTIONS
+)
 
 
 async def async_setup_entry(
@@ -120,9 +167,18 @@ async def async_setup_entry(
     """Set up Private Jack sensors from a config entry."""
     coordinator: JackeryBleCoordinator = hass.data[DOMAIN][config_entry.entry_id]
 
+    # Determine which keys are non-native to this device type
+    if coordinator.device_type == "box":
+        disabled_keys = _PORTABLE_KEYS
+    else:
+        disabled_keys = _BOX_KEYS
+
     entities = [
-        JackeryBleSensor(coordinator, description, config_entry)
-        for description in SENSOR_DESCRIPTIONS
+        JackeryBleSensor(
+            coordinator, description, config_entry,
+            enabled_default=description.key not in disabled_keys,
+        )
+        for description in ALL_SENSOR_DESCRIPTIONS
     ]
     async_add_entities(entities)
 
@@ -137,9 +193,11 @@ class JackeryBleSensor(CoordinatorEntity[JackeryBleCoordinator], SensorEntity):
         coordinator: JackeryBleCoordinator,
         description: SensorEntityDescription,
         config_entry: ConfigEntry,
+        enabled_default: bool = True,
     ) -> None:
         super().__init__(coordinator)
         self.entity_description = description
+        self._attr_entity_registry_enabled_default = enabled_default
         self._attr_unique_id = (
             f"{config_entry.data[CONF_DEVICE_ADDRESS]}_{description.key}"
         )
