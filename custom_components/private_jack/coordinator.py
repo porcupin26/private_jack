@@ -60,6 +60,10 @@ class JackeryBleCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return self._address
 
     @property
+    def device_type(self) -> str:
+        return self._device_type
+
+    @property
     def model_code(self) -> Optional[int]:
         return self._model_code
 
