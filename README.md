@@ -4,7 +4,7 @@ A custom Home Assistant integration that communicates with Jackery solar generat
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 
-[![version](https://img.shields.io/badge/version-1.0.3-blue.svg)](https://github.com/porcupin26/private_jack)
+[![version](https://img.shields.io/github/v/tag/porcupin26/private_jack?label=version&color=blue)](https://github.com/porcupin26/private_jack/releases)
 
 Tested with the **Jackery Explorer 240 and Explorer 5000**, but should work with other Jackery portable and box models that use the same BLE protocol.
 
