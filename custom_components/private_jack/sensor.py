@@ -83,6 +83,13 @@ PORTABLE_SENSOR_DESCRIPTIONS: list[SensorEntityDescription] = [
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
+        key="_solar_input",
+        translation_key="solar_input_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
         key="acov",
         translation_key="ac_output_voltage",
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
@@ -214,6 +221,13 @@ class JackeryBleSensor(CoordinatorEntity[JackeryBleCoordinator], SensorEntity):
         if self.coordinator.data is None:
             return None
         key = self.entity_description.key
+        # Computed sensor: solar input = total input - AC input
+        if key == "_solar_input":
+            ip = self.coordinator.data.get("ip")
+            acip = self.coordinator.data.get("acip")
+            if ip is not None and acip is not None:
+                return max(ip - acip, 0)
+            return None
         value = self.coordinator.data.get(key)
         if value is None:
             return None
