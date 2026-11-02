@@ -17,6 +17,7 @@ Tested with the **Jackery Explorer 240 and Explorer 5000**, but should work with
 - Select controls for light mode, charge mode, battery save, and energy saving timer
 - Automatic time sync on connection
 - Auto-reconnect on connection loss with retry logic
+- Bluetooth signal diagnostic sensor (disabled by default): signal strength at the last connect and the adapter or Bluetooth proxy holding the connection
 
 ## Supported Devices
 
