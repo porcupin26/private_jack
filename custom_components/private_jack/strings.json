@@ -30,7 +30,8 @@
       "ac_output_voltage": { "name": "AC Output Voltage" },
       "ac_output_frequency": { "name": "AC Output Frequency" },
       "energy_saving": { "name": "Energy Saving Timer" },
-      "error_code": { "name": "Error Code" }
+      "error_code": { "name": "Error Code" },
+      "bluetooth_signal": { "name": "Bluetooth Signal" }
     },
     "switch": {
       "ac_output": { "name": "AC Output" },
