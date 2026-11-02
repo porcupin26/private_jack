@@ -292,7 +292,7 @@ class JackeryBleSignalSensor(CoordinatorEntity[JackeryBleCoordinator], SensorEnt
         self._per_source: dict[str, int] = {}
 
     def _rssi_by_source(self) -> dict[str, int]:
-        """Return RSSI per radio, refreshed whenever fresh advertisements exist."""
+        """Return RSSI per radio, refreshed when a new advertisement is heard."""
         if self.hass is not None:
             fresh = {
                 device.scanner.name: device.advertisement.rssi
@@ -302,7 +302,8 @@ class JackeryBleSignalSensor(CoordinatorEntity[JackeryBleCoordinator], SensorEnt
                 if isinstance(device.advertisement.rssi, int)
                 and device.advertisement.rssi > -127
             }
-            if fresh:
+            # Radios expire the device one at a time; a subset of the snapshot is not news.
+            if fresh and not fresh.items() <= self._per_source.items():
                 self._per_source = fresh
         return self._per_source
 
