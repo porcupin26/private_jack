@@ -497,27 +497,25 @@ class JackeryBleClient:
             responses.append(data)
 
         self._notification_callback = collect_callback
+        try:
+            if isinstance(self.encryption, AutoDetectEncryption) and not self.encryption.detected_type:
+                return await self._collect_with_auto_detect(command_hex, collect_callback, collect_time)
 
-        if isinstance(self.encryption, AutoDetectEncryption) and not self.encryption.detected_type:
-            result = await self._collect_with_auto_detect(command_hex, collect_callback, collect_time)
+            if self.encryption:
+                encrypted = self.encryption.encrypt(command_hex)
+                data = bytes.fromhex(encrypted)
+            else:
+                data = bytes.fromhex(command_hex)
+
+            self._response_event.clear()
+            self._last_response = None
+            self._packet_buffer = {}
+
+            await self.client.write_gatt_char(BleUUIDs.CHAR_DATA_WRITE, data, response=False)
+            await asyncio.sleep(collect_time)
+            return responses
+        finally:
             self._notification_callback = original_callback
-            return result
-
-        if self.encryption:
-            encrypted = self.encryption.encrypt(command_hex)
-            data = bytes.fromhex(encrypted)
-        else:
-            data = bytes.fromhex(command_hex)
-
-        self._response_event.clear()
-        self._last_response = None
-        self._packet_buffer = {}
-
-        await self.client.write_gatt_char(BleUUIDs.CHAR_DATA_WRITE, data, response=False)
-        await asyncio.sleep(collect_time)
-
-        self._notification_callback = original_callback
-        return responses
 
     async def _collect_with_auto_detect(self, command_hex: str,
                                         original_callback, collect_time: float) -> list[dict]:
