@@ -112,7 +112,7 @@ No manual configuration of addresses or encryption keys is needed.
 | DC/Solar Input Power | Solar panel / DC input | W |
 | AC Output Voltage | AC output voltage | V |
 | AC Output Frequency | AC output frequency | Hz |
-| Energy Saving Timer | Auto-shutdown timer setting | min |
+| Energy Saving Timer | Idle output timer setting | min |
 | Error Code | Device error code (0 = no error) | - |
 
 ### Switches
@@ -133,7 +133,8 @@ No manual configuration of addresses or encryption keys is needed.
 | Light Mode | off, low, high, sos | Control the built-in light |
 | Charge Mode | fast, silent, custom | Set the charging mode |
 | Battery Save | full, save, custom | Battery usage mode (full 0-100%, save 15-85%, custom) |
-| Energy Saving | Never, 2h, 8h, 12h, 24h | Auto-shutdown timer |
+| Energy Saving | Never, 2h, 8h, 12h, 24h | Turn off idle outputs |
+| Auto power-off | Never, 2h, 8h, 12h, 24h | Turn off the station after inactivity. Only shown if the station reports this timer. |
 
 ## Polling Interval
 

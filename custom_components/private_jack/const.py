@@ -36,7 +36,7 @@ BATTERY_SAVE_OPTIONS = {
     "custom": 2,
 }
 
-ENERGY_SAVING_OPTIONS = {
+TIMER_OPTIONS = {
     "Never": 0,
     "2 hours": 120,
     "8 hours": 480,

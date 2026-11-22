@@ -44,7 +44,11 @@
       "light_mode": { "name": "Light Mode" },
       "charge_mode": { "name": "Charge Mode" },
       "battery_save": { "name": "Battery Save" },
-      "energy_saving": { "name": "Energy Saving" }
+      "energy_saving": { "name": "Energy Saving" },
+      "auto_power_off": { "name": "Auto power-off" }
     }
+  },
+  "exceptions": {
+    "auto_power_off_unconfirmed": { "message": "The station did not confirm the requested auto power-off timer." }
   }
 }
