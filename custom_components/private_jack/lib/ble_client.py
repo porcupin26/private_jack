@@ -204,11 +204,34 @@ class JackeryBleClient:
             await self.client.start_notify(BleUUIDs.CHAR_DATA_NOTIFY, self._handle_notification)
             _LOGGER.debug("Connected to %s", name)
             return True
-        except Exception as e:
+        except (Exception, asyncio.CancelledError) as e:
+            await self._release_failed_client(client)
+            if isinstance(e, asyncio.CancelledError):
+                raise
             error_msg = str(e) if str(e) else type(e).__name__
             _LOGGER.error("Connection setup failed: %s", error_msg)
-            self.client = None
             return False
+
+    async def _release_failed_client(self, client: Optional[BleakClient]) -> None:
+        """Free the connection slot even if notification setup never finished."""
+        if client is None:
+            return
+        if self.client is client:
+            self.client = None
+        disconnect = asyncio.create_task(client.disconnect())
+        cancellation = None
+        # Cancelling the wait leaves the transport task running. Join it before returning.
+        while not disconnect.done():
+            try:
+                await asyncio.wait({disconnect})
+            except asyncio.CancelledError as err:
+                cancellation = err
+        try:
+            disconnect.result()
+        except Exception as err:
+            _LOGGER.debug("Disconnect after failed setup: %s", err)
+        if cancellation is not None:
+            raise cancellation
 
     def _setup_encryption(self) -> None:
         """Configure encryption based on current settings."""
@@ -269,7 +292,10 @@ class JackeryBleClient:
                 _LOGGER.debug("Connected to %s", device.name)
                 return True
 
-            except Exception as e:
+            except (Exception, asyncio.CancelledError) as e:
+                await self._release_failed_client(self.client)
+                if isinstance(e, asyncio.CancelledError):
+                    raise
                 error_msg = str(e) if str(e) else type(e).__name__
                 if attempt < retries:
                     _LOGGER.debug("Connection attempt %d/%d failed: %s, retrying...", attempt, retries, error_msg)
@@ -310,7 +336,10 @@ class JackeryBleClient:
                 _LOGGER.debug("Connected to %s", address)
                 return True
 
-            except Exception as e:
+            except (Exception, asyncio.CancelledError) as e:
+                await self._release_failed_client(self.client)
+                if isinstance(e, asyncio.CancelledError):
+                    raise
                 error_msg = str(e) if str(e) else type(e).__name__
                 if attempt < retries:
                     _LOGGER.debug("Connection attempt %d/%d failed: %s, retrying...", attempt, retries, error_msg)
