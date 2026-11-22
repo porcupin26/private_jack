@@ -218,10 +218,20 @@ class JackeryBleClient:
             return
         if self.client is client:
             self.client = None
+        disconnect = asyncio.create_task(client.disconnect())
+        cancellation = None
+        # Cancelling the wait leaves the transport task running. Join it before returning.
+        while not disconnect.done():
+            try:
+                await asyncio.wait({disconnect})
+            except asyncio.CancelledError as err:
+                cancellation = err
         try:
-            await client.disconnect()
+            disconnect.result()
         except Exception as err:
             _LOGGER.debug("Disconnect after failed setup: %s", err)
+        if cancellation is not None:
+            raise cancellation
 
     def _setup_encryption(self) -> None:
         """Configure encryption based on current settings."""
