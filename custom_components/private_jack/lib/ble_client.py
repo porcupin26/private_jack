@@ -190,8 +190,10 @@ class JackeryBleClient:
         except Exception:
             return None, None, None
 
-    async def connect_with_client(self, client: BleakClient, name: str = "device") -> bool:
-        """Set up an already-connected BleakClient (from establish_connection)."""
+    async def connect_with_client(
+        self, client: BleakClient, name: str = "device", *, raise_on_error: bool = False
+    ) -> bool:
+        """Set up a connected BleakClient; return False on failure unless asked to raise."""
         try:
             if self.client:
                 try:
@@ -205,9 +207,11 @@ class JackeryBleClient:
             _LOGGER.debug("Connected to %s", name)
             return True
         except Exception as e:
+            self.client = None
+            if raise_on_error:
+                raise
             error_msg = str(e) if str(e) else type(e).__name__
             _LOGGER.error("Connection setup failed: %s", error_msg)
-            self.client = None
             return False
 
     def _setup_encryption(self) -> None:

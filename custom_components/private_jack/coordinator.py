@@ -12,6 +12,7 @@ from bleak_retry_connector import establish_connection
 
 from homeassistant.components.bluetooth import async_ble_device_from_address
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
@@ -76,11 +77,11 @@ class JackeryBleCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._client and self._client.is_connected:
             return True
 
+        self._connected = False
         _LOGGER.debug("Connecting to %s (%s)", self._device_name, self._address)
 
         ble_device = async_ble_device_from_address(self.hass, self._address, connectable=True)
         if not ble_device:
-            self._connected = False
             raise UpdateFailed(
                 f"Device {self._device_name} ({self._address}) not found by HA Bluetooth"
             )
@@ -96,10 +97,7 @@ class JackeryBleCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             BleakClient, ble_device, self._device_name
         )
 
-        success = await self._client.connect_with_client(client, self._device_name)
-        if not success:
-            self._connected = False
-            raise UpdateFailed(f"Failed to connect to {self._device_name}")
+        await self._client.connect_with_client(client, self._device_name, raise_on_error=True)
 
         self._connected = True
 
@@ -165,12 +163,20 @@ class JackeryBleCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             await self._ensure_connected()
             await self._client.send_command(command_hex, wait_response=False)
+        except Exception as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="control_send_failed",
+                translation_placeholders={"device": self.device_name},
+            ) from err
+
+        try:
             await asyncio.sleep(0.5)
             # Refresh data after command
             await self.async_request_refresh()
             return True
         except Exception as e:
-            _LOGGER.error("Failed to send command: %s", e)
+            _LOGGER.error("Failed to refresh after sending command: %s", e)
             return False
 
     async def async_shutdown(self) -> None:

@@ -46,5 +46,8 @@
       "battery_save": { "name": "Battery Save" },
       "energy_saving": { "name": "Energy Saving" }
     }
+  },
+  "exceptions": {
+    "control_send_failed": { "message": "Could not send the Bluetooth command to {device}." }
   }
 }
