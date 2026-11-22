@@ -160,13 +160,23 @@ class JackeryBleCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         _LOGGER.debug("Device data: %s", merged_data)
         return merged_data
 
-    async def send_control_command(self, command_hex: str) -> bool:
-        """Send a control command to the device."""
+    async def send_control_command(
+        self, command_hex: str, *, expected_state: tuple[str, int] | None = None
+    ) -> bool:
+        """Send a control command and optionally confirm it against fresh device status."""
         try:
             await self._ensure_connected()
             await self._client.send_command(command_hex, wait_response=False)
             await asyncio.sleep(0.5)
-            # Refresh data after command
+            if expected_state is not None:
+                # A debounced request can return before the next poll runs.
+                previous_data = self.data
+                await self.async_refresh()
+                key, expected = expected_state
+                if not self.last_update_success or self.data is None or self.data is previous_data:
+                    return False
+                actual = self.data.get(key)
+                return type(actual) is int and actual == expected
             await self.async_request_refresh()
             return True
         except Exception as e:

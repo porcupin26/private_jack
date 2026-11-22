@@ -130,6 +130,9 @@ class CommandBuilder:
     def set_screen_timeout_2hr(self) -> str:
         return self.set_screen_timeout(120)
 
+    def set_auto_power_off(self, minutes: int) -> str:
+        return self.build_command(ActionId.AUTO_SHUTDOWN, MsgType.SET_CONTROL, compact_json({"ast": minutes}))
+
     def set_ups_mode(self, enabled: bool) -> str:
         return self.build_command(ActionId.UPS_MODE, MsgType.SET_CONTROL, compact_json({"ups": 1 if enabled else 0}))
 

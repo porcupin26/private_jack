@@ -1,23 +1,24 @@
 """Select platform for Private Jack integration."""
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
 
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    DOMAIN,
+    BATTERY_SAVE_OPTIONS,
+    CHARGE_MODE_OPTIONS,
     CONF_DEVICE_ADDRESS,
     CONF_DEVICE_NAME,
+    DOMAIN,
     LIGHT_MODE_OPTIONS,
-    CHARGE_MODE_OPTIONS,
-    BATTERY_SAVE_OPTIONS,
-    ENERGY_SAVING_OPTIONS,
+    TIMER_OPTIONS,
 )
 from .coordinator import JackeryBleCoordinator
 from .lib.commands import CommandBuilder
@@ -32,6 +33,13 @@ class JackerySelectEntityDescription(SelectEntityDescription):
     state_key: str
     options_map: dict[str, int]
     command_fn: Callable[[CommandBuilder, int], str]
+    confirm_from_status: bool = False
+
+    def supported(self, data: dict | None) -> bool:
+        """Only expose a confirmed setting when the station reports its value."""
+        return not self.confirm_from_status or (
+            data is not None and type(data.get(self.state_key)) is int
+        )
 
 
 SELECT_DESCRIPTIONS: list[JackerySelectEntityDescription] = [
@@ -64,8 +72,17 @@ SELECT_DESCRIPTIONS: list[JackerySelectEntityDescription] = [
         translation_key="energy_saving",
         icon="mdi:timer-outline",
         state_key="pm",
-        options_map=ENERGY_SAVING_OPTIONS,
+        options_map=TIMER_OPTIONS,
         command_fn=lambda cb, val: cb.set_power_mode(val),
+    ),
+    JackerySelectEntityDescription(
+        key="auto_power_off",
+        translation_key="auto_power_off",
+        icon="mdi:timer-off-outline",
+        state_key="ast",
+        options_map=TIMER_OPTIONS,
+        command_fn=lambda cb, val: cb.set_auto_power_off(val),
+        confirm_from_status=True,
     ),
 ]
 
@@ -81,6 +98,7 @@ async def async_setup_entry(
     entities = [
         JackeryBleSelect(coordinator, description, config_entry)
         for description in SELECT_DESCRIPTIONS
+        if description.supported(coordinator.data)
     ]
     async_add_entities(entities)
 
@@ -115,7 +133,7 @@ class JackeryBleSelect(CoordinatorEntity[JackeryBleCoordinator], SelectEntity):
     @property
     def current_option(self) -> str | None:
         """Return the current selected option."""
-        if self.coordinator.data is None:
+        if self.coordinator.data is None or not self.entity_description.supported(self.coordinator.data):
             return None
         value = self.coordinator.data.get(self.entity_description.state_key)
         if value is None:
@@ -124,7 +142,12 @@ class JackeryBleSelect(CoordinatorEntity[JackeryBleCoordinator], SelectEntity):
 
     @property
     def available(self) -> bool:
-        return self.coordinator.last_update_success and self.coordinator.data is not None
+        data = self.coordinator.data
+        return (
+            self.coordinator.last_update_success
+            and data is not None
+            and self.entity_description.supported(data)
+        )
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
@@ -135,4 +158,12 @@ class JackeryBleSelect(CoordinatorEntity[JackeryBleCoordinator], SelectEntity):
         cmd = self.entity_description.command_fn(
             self.coordinator.command_builder, value
         )
+        if self.entity_description.confirm_from_status:
+            if not self.available or not await self.coordinator.send_control_command(
+                cmd, expected_state=(self.entity_description.state_key, value)
+            ):
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN, translation_key="auto_power_off_unconfirmed"
+                )
+            return
         await self.coordinator.send_control_command(cmd)
