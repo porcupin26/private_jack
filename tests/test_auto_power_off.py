@@ -1,5 +1,6 @@
 """Offline tests for the auto power-off select."""
 
+import asyncio
 import json
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -72,6 +73,37 @@ async def test_write_and_confirm(tmp_path, minutes, label):
     assert query[3:5] == bytes([252, 3])  # Device property status query
     assert timer.current_option == label
     assert selects["energy_saving"].current_option == "12 hours"
+
+
+async def test_concurrent_selections_confirm_their_own_writes(tmp_path):
+    selects, client = await setup_selects(tmp_path, {"ast": 0})
+    timer = selects["auto_power_off"]
+    station = {"ast": 0}
+    first_written = asyncio.Event()
+    second_started = asyncio.Event()
+    readings = []
+
+    def write(command_hex, **kwargs):
+        station.update(json.loads(bytes.fromhex(command_hex)[6:]))
+        first_written.set()
+
+    async def read_status(*args, **kwargs):
+        await second_started.wait()
+        readings.append(station["ast"])
+        return [station.copy()]
+
+    client.send_command.side_effect = write
+    client.send_command_collect_all.side_effect = read_status
+
+    async with asyncio.timeout(5), asyncio.TaskGroup() as tasks:
+        tasks.create_task(timer.async_select_option("2 hours"))
+        await first_written.wait()
+        # Start the competing selection before the first can confirm its write.
+        second_started.set()
+        await timer.async_select_option("8 hours")
+
+    assert readings == [120, 480]
+    assert timer.current_option == "8 hours"
 
 
 @pytest.mark.parametrize("readback", [[{"ast": 120, "pm": 0}], [{"pm": 0}], []],
