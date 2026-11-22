@@ -77,11 +77,11 @@ class JackeryBleCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._client and self._client.is_connected:
             return True
 
+        self._connected = False
         _LOGGER.debug("Connecting to %s (%s)", self._device_name, self._address)
 
         ble_device = async_ble_device_from_address(self.hass, self._address, connectable=True)
         if not ble_device:
-            self._connected = False
             raise UpdateFailed(
                 f"Device {self._device_name} ({self._address}) not found by HA Bluetooth"
             )
@@ -97,10 +97,7 @@ class JackeryBleCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             BleakClient, ble_device, self._device_name
         )
 
-        success = await self._client.connect_with_client(client, self._device_name)
-        if not success:
-            self._connected = False
-            raise UpdateFailed(f"Failed to connect to {self._device_name}")
+        await self._client.connect_with_client(client, self._device_name, raise_on_error=True)
 
         self._connected = True
 

@@ -1,10 +1,12 @@
 """Offline tests for Bluetooth control service errors."""
 
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 import pytest_asyncio
+from bleak import BleakClient
+from bleak.exc import BleakError
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import frame
@@ -71,6 +73,38 @@ async def test_service_reports_connection_failure(controls, monkeypatch):
     assert exc.value.translation_key == "control_send_failed"
     assert isinstance(exc.value.__cause__, UpdateFailed)
     client.send_command.assert_not_awaited()
+
+
+async def test_service_preserves_notify_failure(controls, monkeypatch):
+    entities, client = controls
+    client.is_connected = False
+    transport = Mock(spec=BleakClient)
+    failure = BleakError("Cannot subscribe to notifications")
+    transport.start_notify.side_effect = failure
+    monkeypatch.setattr(
+        "custom_components.private_jack.coordinator.async_ble_device_from_address",
+        Mock(return_value=object()),
+    )
+    monkeypatch.setattr(
+        "custom_components.private_jack.coordinator.establish_connection",
+        AsyncMock(return_value=transport),
+    )
+
+    with pytest.raises(HomeAssistantError) as exc:
+        await entities["ac_output"].async_turn_on()
+
+    assert exc.value.translation_key == "control_send_failed"
+    assert exc.value.__cause__ is failure
+    transport.write_gatt_char.assert_not_awaited()
+
+
+async def test_connect_with_client_returns_false_by_default_on_notify_failure():
+    transport = Mock(spec=BleakClient)
+    transport.start_notify.side_effect = BleakError("Cannot subscribe to notifications")
+    client = JackeryBleClient()
+
+    assert await client.connect_with_client(transport) is False
+    assert not client.is_connected
 
 
 @pytest.mark.parametrize(("reported", "expected"), [(2, "high"), (1, "low")])
