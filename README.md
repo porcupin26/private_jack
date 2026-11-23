@@ -158,6 +158,12 @@ The integration polls the device every **30 seconds** by default. Each poll esta
 - BLE connections can be unreliable over distance; the integration will auto-reconnect on the next poll cycle (with up to 2 retry attempts)
 - Check Home Assistant logs for error messages: **Settings > System > Logs**, filter for `private_jack`
 
+### Connected, but notification characteristic `ee02` was not found
+
+This is different from a scan failure: Home Assistant connected to the station, but could not subscribe to status updates. Check which adapter made the connection in **Settings > Devices & services > Bluetooth**.
+
+If this repeats on a local Linux adapter, BlueZ may be using an old list of services. The error alone does not prove that. See [Bleak's Linux troubleshooting guide](https://bleak.readthedocs.io/en/stable/troubleshooting.html#id4) before removing a device: removal disconnects it and can discard a pairing. This is a host-adapter step; it does not clear an ESPHome proxy's state.
+
 ### Switches not working
 
 - The device must be connected and responding to status queries before control commands will work
