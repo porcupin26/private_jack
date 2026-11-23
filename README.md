@@ -8,6 +8,8 @@ A custom Home Assistant integration that communicates with Jackery solar generat
 
 Tested with the **Jackery Explorer 240 and Explorer 5000**, but should work with other Jackery portable and box models that use the same BLE protocol.
 
+The **Explorer 5000 Plus** (model code 13) is confirmed working as well.
+
 ## Features
 
 - Auto-discovery of Jackery devices via BLE scan
@@ -147,11 +149,20 @@ The integration polls the device every **30 seconds** by default. Each poll esta
 - Make sure Bluetooth is enabled on your Home Assistant host
 - Move the HA host closer to the Jackery device (BLE range is typically 10-15 meters)
 - Make sure the official Jackery app is not connected to the device (only one BLE connection at a time)
+- The Jackery app can keep the BLE connection even when it is set to use Wi-Fi. The unit stops advertising while anything is connected, so turn off Bluetooth on the phone (or force-quit the app) and check that the unit's Bluetooth icon is blinking
+- On Explorer Plus models, Wi-Fi and Bluetooth switch off automatically if no device connects within 2 hours of power-on (the Bluetooth icon goes dark). Hold the **USB** and **AC** buttons together until the Wi-Fi and Bluetooth icons light up to turn them back on
+- To clear a stored Wi-Fi network and the app binding, hold **POWER** and **USB** together for about 5 seconds. The unit reboots (AC outputs may briefly drop) and the app account is unbound
 
 ### Connection drops or timeouts
 
 - BLE connections can be unreliable over distance; the integration will auto-reconnect on the next poll cycle (with up to 2 retry attempts)
 - Check Home Assistant logs for error messages: **Settings > System > Logs**, filter for `private_jack`
+
+### Connected, but notification characteristic `ee02` was not found
+
+This is different from a scan failure: Home Assistant connected to the station, but could not subscribe to status updates. Check which adapter made the connection in **Settings > Devices & services > Bluetooth**.
+
+If this repeats on a local Linux adapter, BlueZ may be using an old list of services. The error alone does not prove that. See [Bleak's Linux troubleshooting guide](https://bleak.readthedocs.io/en/stable/troubleshooting.html#id4) before removing a device: removal disconnects it and can discard a pairing. This is a host-adapter step; it does not clear an ESPHome proxy's state.
 
 ### Switches not working
 
